@@ -119,17 +119,16 @@ const TrackingTable = ({ data, updateRecord, deleteRecord, selectedRows, setSele
     if (isEditing) {
       return (
         <div className="flex items-center gap-1 min-w-0 p-1">
-          <Input
+          <input
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
-            className="h-8 text-sm min-w-0 flex-1 border-2 border-blue-500 focus:border-blue-600 bg-white text-gray-900 focus:ring-2 focus:ring-blue-200"
+            className="h-8 text-sm min-w-0 flex-1 border-2 border-blue-500 focus:border-blue-600 bg-white px-2 py-1 rounded text-black focus:outline-none focus:ring-2 focus:ring-blue-200"
             type={isDate ? 'date' : 'text'}
             onKeyDown={(e) => {
               if (e.key === 'Enter') saveEdit();
               if (e.key === 'Escape') cancelEdit();
             }}
             autoFocus
-            style={{ fontSize: '14px', color: '#1f2937' }}
           />
           <Button size="sm" variant="ghost" className="h-6 w-6 p-0 shrink-0 hover:bg-green-100" onClick={saveEdit}>
             <Save className="h-3 w-3 text-green-600" />
@@ -194,10 +193,11 @@ const TrackingTable = ({ data, updateRecord, deleteRecord, selectedRows, setSele
       <div
         className="flex items-center justify-between group cursor-pointer hover:bg-blue-50 px-1.5 py-1 rounded transition-all duration-200 min-h-[28px] border border-transparent hover:border-blue-200"
         onClick={() => startEdit(record.id, field, value)}
+        style={{ minWidth: '80px' }}
       >
-        <span className={`text-sm truncate ${
+        <span className={`text-sm truncate font-medium ${
           isDate && value ? 'text-blue-700 bg-blue-50 px-1 py-0.5 rounded text-xs' :
-          value ? 'text-gray-800' : 'text-gray-400 italic opacity-50'
+          value ? 'text-gray-900 font-medium' : 'text-gray-400 italic opacity-50'
         }`}>
           {String(value) || (
             <span className="text-gray-400 text-xs opacity-60">—</span>
