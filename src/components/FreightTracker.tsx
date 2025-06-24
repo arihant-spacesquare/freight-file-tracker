@@ -69,14 +69,14 @@ const FreightTracker = () => {
 
   // Welcome notification on mount
   useEffect(() => {
-    if (!exportLoading) {
+    if (!exportLoading && !importLoading && !allFilesLoading) {
       addNotification(
         'Welcome to Freight Tracker',
         'Your data is synced with Firebase. All changes will persist.',
         'success'
       );
     }
-  }, [addNotification, exportLoading]);
+  }, [addNotification, exportLoading, importLoading, allFilesLoading]);
 
   // Get current search term and setter based on active tab
   const getCurrentSearchProps = () => {
@@ -186,6 +186,8 @@ const FreightTracker = () => {
   };
 
   const addNewRecord = async () => {
+    console.log('=== STARTING TO ADD NEW EXPORT RECORD ===');
+    
     const newRecord: Omit<TrackingRecord, 'id'> = {
       customer: "",
       ref: "",
@@ -213,18 +215,23 @@ const FreightTracker = () => {
       notes: ""
     };
 
+    console.log('New record to add:', newRecord);
+    console.log('Current user ID:', currentUserId);
+    console.log('addExportItem function:', addExportItem);
+
     try {
-      console.log('Adding new export record...');
       const id = await addExportItem(newRecord);
-      console.log('Successfully added export record with ID:', id);
-      addNotification('Success', 'New export record added', 'success');
+      console.log('=== SUCCESSFULLY ADDED EXPORT RECORD ===', id);
+      addNotification('Success', 'New export record added successfully', 'success');
     } catch (error) {
-      console.error('Error adding export record:', error);
-      addNotification('Error', 'Failed to add record', 'error');
+      console.error('=== ERROR ADDING EXPORT RECORD ===', error);
+      addNotification('Error', `Failed to add record: ${error}`, 'error');
     }
   };
 
   const addNewImportRecord = async () => {
+    console.log('=== STARTING TO ADD NEW IMPORT RECORD ===');
+    
     const newRecord: Omit<ImportTrackingRecord, 'id'> = {
       reference: "",
       file: "",
@@ -246,16 +253,22 @@ const FreightTracker = () => {
       notes: ""
     };
 
+    console.log('New import record to add:', newRecord);
+    console.log('Current user ID:', currentUserId);
+
     try {
       const id = await addImportItem(newRecord);
-      addNotification('Success', 'New import record added', 'success');
+      console.log('=== SUCCESSFULLY ADDED IMPORT RECORD ===', id);
+      addNotification('Success', 'New import record added successfully', 'success');
     } catch (error) {
-      console.error('Error adding import record:', error);
-      addNotification('Error', 'Failed to add record', 'error');
+      console.error('=== ERROR ADDING IMPORT RECORD ===', error);
+      addNotification('Error', `Failed to add record: ${error}`, 'error');
     }
   };
 
   const addNewAllFilesRecord = async () => {
+    console.log('=== STARTING TO ADD NEW ALL FILES RECORD ===');
+    
     const newRecord: Omit<AllFilesRecord, 'id'> = {
       file: "ES",
       number: "",
@@ -276,17 +289,27 @@ const FreightTracker = () => {
       salesContact: ""
     };
 
+    console.log('New all files record to add:', newRecord);
+    console.log('Current user ID:', currentUserId);
+
     try {
       const id = await addAllFilesItem(newRecord);
-      addNotification('Success', 'New all files record added', 'success');
+      console.log('=== SUCCESSFULLY ADDED ALL FILES RECORD ===', id);
+      addNotification('Success', 'New all files record added successfully', 'success');
     } catch (error) {
-      console.error('Error adding all files record:', error);
-      addNotification('Error', 'Failed to add record', 'error');
+      console.error('=== ERROR ADDING ALL FILES RECORD ===', error);
+      addNotification('Error', `Failed to add record: ${error}`, 'error');
     }
   };
 
   // Universal add record function based on active tab
   const handleAddRecord = () => {
+    console.log('=== ADD RECORD BUTTON CLICKED ===');
+    console.log('Active tab:', activeTab);
+    console.log('Export data length:', exportData.length);
+    console.log('Import data length:', importData.length);
+    console.log('All files data length:', allFilesData.length);
+    
     switch (activeTab) {
       case 'export-table':
         addNewRecord();
@@ -298,6 +321,7 @@ const FreightTracker = () => {
         addNewAllFilesRecord();
         break;
       default:
+        console.log('Unknown tab, defaulting to export');
         addNewRecord();
     }
   };
