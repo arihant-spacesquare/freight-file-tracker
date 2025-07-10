@@ -20,50 +20,40 @@ steps:
 # The Dockerfile must be in the current directory (which is freight-file-tracker).
 - name: 'gcr.io/cloud-builders/docker'
   id: Build Docker Image
-  args: ['build', '-t', "gcr.io/$PROJECT_ID/freight-email-service:$_BUILD_ID", '.']
+  args: ['build', '-t', "gcr.io/$PROJECT_ID/freight-email-service:$COMMIT_SHA", '.']
 
 # Step 4: Deploy to Cloud Run
 # This step deploys the built Docker image to Cloud Run.
 # It uses the secrets from Secret Manager as environment variables for the Cloud Run service.
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   id: Deploy to Cloud Run
-  entrypoint: gcloud
+  entrypoint: bash # Changed entrypoint to bash
   args:
-  - 'run'
-  - 'deploy'
-  - 'freight-email-service' # Name of your Cloud Run service
-  - '--image=gcr.io/$PROJECT_ID/freight-email-service:$_BUILD_ID'
-  - '--region=us-central1' # Or your desired region
-  - '--allow-unauthenticated' # Adjust based on whether your service needs to be public or internal
-  - '--platform=managed'
-  - '--set-env-vars=FIREBASE_SERVICE_ACCOUNT_KEY=$$FIREBASE_SERVICE_ACCOUNT_KEY_SECRET'
-  - '--set-env-vars=GMAIL_CLIENT_ID=$$GMAIL_CLIENT_ID_SECRET'
-  - '--set-env-vars=GMAIL_CLIENT_SECRET=$$GMAIL_CLIENT_SECRET_SECRET'
-  - '--set-env-vars=GMAIL_REFRESH_TOKEN=$$GMAIL_REFRESH_TOKEN_SECRET'
-  - '--set-env-vars=GMAIL_REDIRECT_URL=$$GMAIL_REDIRECT_URL_SECRET'
-  # Permissions for Cloud Run to access Secret Manager at runtime
-  - '--update-secrets=FIREBASE_SERVICE_ACCOUNT_KEY_SECRET=firebase-service-account-key:latest'
-  - '--update-secrets=GMAIL_CLIENT_ID_SECRET=gmail-client-id:latest'
-  - '--update-secrets=GMAIL_CLIENT_SECRET_SECRET=gmail-client-secret:latest'
-  - '--update-secrets=GMAIL_REFRESH_TOKEN_SECRET=gmail-refresh-token:latest'
-  - '--update-secrets=GMAIL_REDIRECT_URL_SECRET=gmail-redirect-url:latest'
+    - '-c' # This tells bash to execute the following string as a command
+    - | # Multi-line string for the gcloud command
+      gcloud run deploy freight-email-service \
+        --image="gcr.io/$PROJECT_ID/freight-email-service:$COMMIT_SHA" \
+        --region=us-central1 \
+        --allow-unauthenticated \
+        --platform=managed \
+        --set-env-vars=FIREBASE_SERVICE_ACCOUNT_KEY="$$SECRET_FIREBASE_SERVICE_ACCOUNT_KEY_SECRET",GMAIL_CLIENT_ID="$$SECRET_GMAIL_CLIENT_ID_SECRET",GMAIL_CLIENT_SECRET="$$SECRET_GMAIL_CLIENT_SECRET_SECRET",GMAIL_REFRESH_TOKEN="$$SECRET_GMAIL_REFRESH_TOKEN_SECRET",GMAIL_REDIRECT_URL="$$SECRET_GMAIL_REDIRECT_URL_SECRET" \
+        --update-secrets=FIREBASE_SERVICE_ACCOUNT_KEY_SECRET=firebase-service-account-key:latest,GMAIL_CLIENT_ID_SECRET=gmail-client-id:latest,GMAIL_CLIENT_SECRET_SECRET=gmail-client-secret:latest,GMAIL_REFRESH_TOKEN_SECRET=gmail-refresh-token:latest,GMAIL_REDIRECT_URL_SECRET=gmail-redirect-url:latest
 
 # This section tells Cloud Build to send logs directly to Cloud Logging.
 options:
   logging: CLOUD_LOGGING_ONLY
 
 # List of secrets to be accessed by Cloud Build during the build process
-# These secret values are made available as environment variables to the build steps
-# (prefixed with 'SECRET_') and then explicitly passed to Cloud Run.
+# IMPORTANT: The 'env' names here MUST start with 'SECRET_'
 availableSecrets:
   secretManager:
   - versionName: projects/596797154216/secrets/firebase-service-account-key/versions/latest
-    env: 'FIREBASE_SERVICE_ACCOUNT_KEY_SECRET'
+    env: 'SECRET_FIREBASE_SERVICE_ACCOUNT_KEY_SECRET'
   - versionName: projects/596797154216/secrets/gmail-client-id/versions/latest
-    env: 'GMAIL_CLIENT_ID_SECRET'
+    env: 'SECRET_GMAIL_CLIENT_ID_SECRET'
   - versionName: projects/596797154216/secrets/gmail-client-secret/versions/latest
-    env: 'GMAIL_CLIENT_SECRET_SECRET'
+    env: 'SECRET_GMAIL_CLIENT_SECRET_SECRET'
   - versionName: projects/596797154216/secrets/gmail-refresh-token/versions/latest
-    env: 'GMAIL_REFRESH_TOKEN_SECRET'
+    env: 'SECRET_GMAIL_REFRESH_TOKEN_SECRET'
   - versionName: projects/596797154216/secrets/gmail-redirect-url/versions/latest
-    env: 'GMAIL_REDIRECT_URL_SECRET'
+    env: 'SECRET_GMAIL_REDIRECT_URL_SECRET'
