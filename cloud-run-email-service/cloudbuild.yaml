@@ -1,3 +1,6 @@
+cd ~/freight-file-tracker
+
+cat > cloudbuild.yaml << 'EOF'
 # This Cloud Build configuration deploys a Node.js application to Cloud Run.
 # It builds the application, then deploys it while injecting secrets
 # from Google Secret Manager as environment variables.
@@ -57,3 +60,4 @@ availableSecrets:
     env: 'SECRET_GMAIL_REFRESH_TOKEN_SECRET'
   - versionName: projects/596797154216/secrets/gmail-redirect-url/versions/latest
     env: 'SECRET_GMAIL_REDIRECT_URL_SECRET'
+EOF
