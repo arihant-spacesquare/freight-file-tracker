@@ -1,37 +1,74 @@
-steps:
-  # Build and push Docker image
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'build'
-      - '-t'
-      - 'gcr.io/$PROJECT_ID/freight-email-service:$COMMIT_SHA'
-      - '.'
-  
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - 'gcr.io/$PROJECT_ID/freight-email-service:$COMMIT_SHA'
-  
-  # Deploy to Cloud Run
-  - name: 'gcr.io/cloud-builders/gcloud'
-    args:
-      - 'run'
-      - 'deploy'
-      - 'freight-email-service'
-      - '--image'
-      - 'gcr.io/$PROJECT_ID/freight-email-service:$COMMIT_SHA'
-      - '--region'
-      - 'us-central1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--port'
-      - '8080'
-      - '--set-env-vars'
-      - 'FIREBASE_SERVICE_ACCOUNT_KEY=${_FIREBASE_SERVICE_ACCOUNT_KEY},GMAIL_CLIENT_ID=${_GMAIL_CLIENT_ID},GMAIL_CLIENT_SECRET=${_GMAIL_CLIENT_SECRET},GMAIL_REFRESH_TOKEN=${_GMAIL_REFRESH_TOKEN},GMAIL_REDIRECT_URL=${_GMAIL_REDIRECT_URL}'
-      - '--quiet'
+# This Cloud Build configuration deploys a Node.js application to Cloud Run.
+# It builds the application, then deploys it while injecting secrets
+# from Google Secret Manager as environment variables.
 
+steps:
+# Step 1: Install Node.js dependencies
+# This uses the 'npm' builder.
+- name: 'gcr.io/cloud-builders/npm'
+  id: Install Dependencies
+  args: ['install']
+
+# Step 2: Build the frontend application (if applicable, otherwise remove if this is a backend-only service)
+# Assuming your package.json has a 'build' script.
+- name: 'gcr.io/cloud-builders/npm'
+  id: Build Frontend
+  args: ['run', 'build'] # Adjust 'build' if your script name is different
+
+# Step 3: Build the Docker image
+# This uses the 'cloud-sdk' builder and Docker to build your container image.
+# The Dockerfile must be in the current directory (which is freight-file-tracker).
+- name: 'gcr.io/cloud-builders/docker'
+  id: Build Docker Image
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/freight-email-service:$COMMIT_SHA', '.']
+
+# Step 4: Deploy to Cloud Run
+# This step deploys the built Docker image to Cloud Run.
+# It uses the secrets from Secret Manager as environment variables for the Cloud Run service.
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  id: Deploy to Cloud Run
+  entrypoint: gcloud
+  args:
+  - 'run'
+  - 'deploy'
+  - 'freight-email-service' # Name of your Cloud Run service
+  - '--image=gcr.io/$PROJECT_ID/freight-email-service:$COMMIT_SHA'
+  - '--region=us-central1' # Or your desired region
+  - '--allow-unauthenticated' # Adjust based on whether your service needs to be public or internal
+  - '--platform=managed'
+  - '--set-env-vars=FIREBASE_SERVICE_ACCOUNT_KEY=$$FIREBASE_SERVICE_ACCOUNT_KEY_SECRET'
+  - '--set-env-vars=GMAIL_CLIENT_ID=$$GMAIL_CLIENT_ID_SECRET'
+  - '--set-env-vars=GMAIL_CLIENT_SECRET=$$GMAIL_CLIENT_SECRET_SECRET'
+  - '--set-env-vars=GMAIL_REFRESH_TOKEN=$$GMAIL_REFRESH_TOKEN_SECRET'
+  - '--set-env-vars=GMAIL_REDIRECT_URL=$$GMAIL_REDIRECT_URL_SECRET'
+  # Permissions for Cloud Run to access Secret Manager at runtime
+  - '--update-secrets=FIREBASE_SERVICE_ACCOUNT_KEY_SECRET=firebase-service-account-key:latest'
+  - '--update-secrets=GMAIL_CLIENT_ID_SECRET=gmail-client-id:latest'
+  - '--update-secrets=GMAIL_CLIENT_SECRET_SECRET=gmail-client-secret:latest'
+  - '--update-secrets=GMAIL_REFRESH_TOKEN_SECRET=gmail-refresh-token:latest'
+  - '--update-secrets=GMAIL_REDIRECT_URL_SECRET=gmail-redirect-url:latest'
+
+# Define the service account that Cloud Build will use for this build.
+# This should be the Cloud Build service account that you gave Secret Manager Access.
+# Replace 'PROJECT_NUMBER' with your actual Project Number (from Firebase Console -> Project settings)
+serviceAccount: 'projects/freight-file-tracker-v2/serviceAccounts/596797154216@cloudbuild.gserviceaccount.com'
+
+# This section tells Cloud Build to send logs directly to Cloud Logging.
 options:
   logging: CLOUD_LOGGING_ONLY
-  
-timeout: 1200s
+
+# List of secrets to be accessed by Cloud Build during the build process
+# These secret values are made available as environment variables to the build steps
+# (prefixed with 'SECRET_') and then explicitly passed to Cloud Run.
+availableSecrets:
+  secretManager:
+  - versionName: projects/$PROJECT_NUMBER/secrets/firebase-service-account-key/versions/latest
+    env: 'FIREBASE_SERVICE_ACCOUNT_KEY_SECRET'
+  - versionName: projects/$PROJECT_NUMBER/secrets/gmail-client-id/versions/latest
+    env: 'GMAIL_CLIENT_ID_SECRET'
+  - versionName: projects/$PROJECT_NUMBER/secrets/gmail-client-secret/versions/latest
+    env: 'GMAIL_CLIENT_SECRET_SECRET'
+  - versionName: projects/$PROJECT_NUMBER/secrets/gmail-refresh-token/versions/latest
+    env: 'GMAIL_REFRESH_TOKEN_SECRET'
+  - versionName: projects/$PROJECT_NUMBER/secrets/gmail-redirect-url/versions/latest
+    env: 'GMAIL_REDIRECT_URL_SECRET'
