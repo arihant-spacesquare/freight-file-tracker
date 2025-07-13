@@ -61,7 +61,7 @@ export const useFirebaseAuth = () => {
     
     // Option 2: Whitelist specific emails
     const allowedEmails = [
-      'arihant@spacesquare.dev'
+      'arihant@spacesquare.dev',
       'pranadhi.koradia@gmail.com',
       // Add more allowed emails here
     ];
