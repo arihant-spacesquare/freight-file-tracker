@@ -1,10 +1,11 @@
+// ImportTrackingTableRow.tsx
 import React, { useState, memo, useMemo, useCallback } from 'react';
 import { ExternalLink, Link, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ImportTrackingRecord } from '../types/ImportTrackingRecord';
 import InlineEditCell from './InlineEditCell';
-import { isImportRecordComplete } from '../utils/completionUtils'; // Assuming this path is correct
+import { isImportRecordComplete } from '../utils/completionUtils';
 
 interface ImportTrackingTableRowProps {
   record: ImportTrackingRecord;
@@ -39,16 +40,16 @@ const ImportTrackingTableRow = memo(({
   const isHighlighted = highlightedRowId === record.id;
 
   // Memoized computed values for performance
-  // IMPORTANT: Explicitly list all dependencies that affect isImportRecordComplete
+  // IMPORTANT: Dependencies for isCompleted should now only include fields relevant to its new logic.
+  // Dependencies for isEmpty (customer, file) still needed.
   const { isCompleted, isEmpty } = useMemo(() => {
-    // console.log(`[ImportTableRow] Recalculating completion for record ${record.id}`); // For debugging
+    // console.log(`[ImportTableRow] Recalculating completion/empty for record ${record.id}`); // For debugging
     const completed = isImportRecordComplete(record);
-    const empty = !record.customer && !record.file;
+    const empty = !record.customer && !record.file; // isEmpty still depends on these
     return { isCompleted: completed, isEmpty: empty };
   }, [
-    record.id, // Ensure we re-evaluate if the record ID somehow changes (though unlikely)
-    record.customer,
-    record.file,
+    record.id,
+    // Dependencies primarily for isCompleted
     record.bond,
     record.poa,
     record.isf,
@@ -62,8 +63,11 @@ const ImportTrackingTableRow = memo(({
     record.invoiceSent,
     record.paymentReceived,
     record.workOrderSetup,
-    record.returnDateStatus, // Crucial for re-evaluation when this specific status changes
-    record.deliveryDateStatus // Crucial for re-evaluation when this specific status changes
+    record.returnDateStatus,
+    record.deliveryDateStatus,
+    // Dependencies primarily for isEmpty
+    record.customer, // Still needed for isEmpty calculation
+    record.file      // Still needed for isEmpty calculation
   ]);
 
   const handleCheckboxChange = useCallback((checked: boolean) => {
@@ -92,10 +96,10 @@ const ImportTrackingTableRow = memo(({
   const handleDateStatusToggle = useCallback((field: 'deliveryDateStatus' | 'returnDateStatus') => {
     const currentStatus = record[field] || 'gray';
     const statusCycle = ['gray', 'yellow', 'green', 'red'] as const;
-    const currentIndex = statusCycle.indexOf(currentStatus as typeof statusCycle[number]); // Cast for safety
+    const currentIndex = statusCycle.indexOf(currentStatus as typeof statusCycle[number]);
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
     updateRecord(record.id, field, nextStatus);
-  }, [record.id, record.deliveryDateStatus, record.returnDateStatus, updateRecord]); // Include specific status fields here too if `record` isn't changing reference
+  }, [record.id, record.deliveryDateStatus, record.returnDateStatus, updateRecord]);
 
   const getStatusColor = useCallback((status?: string) => {
     switch (status) {
@@ -116,8 +120,8 @@ const ImportTrackingTableRow = memo(({
       isHighlighted ? 'bg-yellow-200' :
       isArchived ? 'bg-gray-200 opacity-60' :
       index % 2 === 0 ? 'bg-white hover:bg-blue-50' : 'bg-blue-50 hover:bg-blue-100'
-    } ${isCompleted ? 'border-4 border-green-500 bg-green-50 font-bold' : ''}`, // Added font-bold
-    [isHighlighted, isArchived, index, isCompleted] // isCompleted is the key dependency here
+    } ${isCompleted ? 'border-4 border-green-500 bg-green-50 font-bold' : ''}`,
+    [isHighlighted, isArchived, index, isCompleted]
   );
 
   return (
